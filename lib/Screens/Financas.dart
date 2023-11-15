@@ -30,6 +30,8 @@ class _DataManagementScreenState extends State<DataManagementScreen> {
   late List<FinancialData> financialDataList = [];
   late String total = "";
   String filter = "";
+  bool _isValid = true;
+
   @override
   void dispose() {
     _descricaoController.dispose();
@@ -128,7 +130,8 @@ class _DataManagementScreenState extends State<DataManagementScreen> {
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
                         final descricao = _descricaoController.text;
-                        final valor = double.parse(_valorController.text);
+                        final valor = (double.parse(_valorController.text) /
+                            int.parse(_parcelaController.text));
                         final mes = DateTime.now().month;
                         String data =
                             DateFormat("dd/MM/yyyy").format(DateTime.now());
@@ -139,6 +142,7 @@ class _DataManagementScreenState extends State<DataManagementScreen> {
                         int novaParcela = 0;
                         // _itemIdController.text =
                         //     DateTime.fromMillisecondsSinceEpoch.toString();
+
                         loadUserId();
                         _carteiraIdController.text = userId.toString();
                         _usuarioIdController.text = userId.toString();
@@ -257,9 +261,14 @@ class _DataManagementScreenState extends State<DataManagementScreen> {
               child: TextFormField(
                 controller: _filterController,
                 decoration: InputDecoration(
-                  labelText: 'Filtro mês',
+                  labelText: 'Filtro',
                 ),
                 onTap: () => CalcularTotal(),
+                // onChanged: (value) {
+                //   setState(() {
+                //     _isValid = validateInput(value);
+                //   });
+                // },
               ),
             ),
             Expanded(
@@ -279,7 +288,9 @@ class _DataManagementScreenState extends State<DataManagementScreen> {
                       DataColumn(label: Text("")),
                     ],
                     rows: financialDataList
-                        .where((m) => m.mes.contains(_filterController.text))
+                        .where((m) =>
+                            m.mes.contains(_filterController.text) ||
+                            m.origem.contains(_filterController.text))
                         .map((data) {
                       return DataRow(cells: [
                         // DataCell(Text(data.mes)),
@@ -319,12 +330,6 @@ class _DataManagementScreenState extends State<DataManagementScreen> {
     );
   }
 
-  // ReplicarDebitosPorParcela(FinancialData a_Item) {
-  //   if (a_Item.parcela > 0) {
-  //     FinancialData l_FinancialData = FinancialData();
-  //   }
-  // }
-
   Future<void> loadUserId() async {
     final prefs = await SharedPreferences.getInstance();
     final storedUserId = prefs.getInt('user_id');
@@ -355,13 +360,21 @@ class _DataManagementScreenState extends State<DataManagementScreen> {
 
   void CalcularTotal() {
     double _total = 0;
-    var listaFiltrada = financialDataList
-        .where((element) => element.mes.contains(_filterController.text));
+
+    var listaFiltrada = financialDataList.where((m) =>
+        m.mes.contains(_filterController.text) ||
+        m.origem.contains(_filterController.text));
     for (var item in listaFiltrada.toList()) {
-      _total += item.subtotal;
+      _total += item.valor;
     }
     setState(() {
       total = 'Débitos totais R\$${_total.toStringAsFixed(2)}';
     });
+  }
+
+  bool validateInput(String input) {
+    // Usando uma expressão regular para verificar se há apenas letras
+    RegExp regex = RegExp(r'^[a-zA-Z]+$');
+    return regex.hasMatch(input);
   }
 }
